@@ -1,0 +1,25 @@
+{
+  "name": "codegen",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "prestart": "npm install",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/cloudbuild": "^2.0.4",
+    "@google-cloud/functions": "^1.1.0",
+    "adm-zip": "^0.4.16",
+    "express": "^4.17.1",
+    "uuid": "^8.3.1",
+    "zip-folder": "^1.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6"
+  }
+}
