@@ -16,7 +16,9 @@
     "@google-cloud/functions": "^1.1.0",
     "@google-cloud/storage": "^5.5.0",
     "adm-zip": "^0.4.16",
+    "axios": "^0.21.0",
     "express": "^4.17.1",
+    "form-data": "^3.0.0",
     "uuid": "^8.3.1",
     "zip-folder": "^1.0.0"
   },

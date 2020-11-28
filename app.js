@@ -4,6 +4,7 @@ const express = require('express')
 const app = express()
 const port = 3000;
 var AdmZip = require('adm-zip');
+const { CloudFunctionsServiceClient } = require('@google-cloud/functions');
 
 
 app.get('/testAuth', async (req, res) => {
@@ -78,7 +79,7 @@ app.get('/', (req, res) => {
 });
 
 
-app.get('/upload', async (req, res) => {
+app.get('/list', async (req, res) => {
 
 
   try {
@@ -116,7 +117,7 @@ app.get('/upload', async (req, res) => {
 
     // export GOOGLE_APPLICATION_CREDENTIALS="/Users/marcusgallegos/Senior Design-18c4109462fd.json"   
 
-    res.send('Sucessfully Uploaded');
+    res.send('Sucessfully Listed Functions, check your console!');
 
 
   } catch (error) {
@@ -125,8 +126,95 @@ app.get('/upload', async (req, res) => {
 
   }
 
+});
+
+app.get('/generateUploadUrl', async (req, res) => {
+  const { CloudFunctionsServiceClient } = require('@google-cloud/functions');
+
+  const client = new CloudFunctionsServiceClient();
+
+  let request = {
+    parent: 'projects/senior-design-293721/locations/us-central1'
+  }
+
+  const [response] = await client.generateUploadUrl(request);
+
+  console.log('response', response.uploadUrl)
+  // res.send(response)
+
+  var axios = require('axios');
+  var FormData = require('form-data');
+  var fs = require('fs');
+  var data = new FormData();
+  data.append('File', fs.createReadStream('/Users/marcusgallegos/Downloads/function-source (1).zip'));
+
+  var config = {
+    method: 'put',
+    url: response.uploadUrl,
+    headers: {
+      ...data.getHeaders(),
+      'content-type': 'application/zip',
+      'x-goog-content-length-range': '0,104857600',
+    },
+    data: data
+  };
+
+  axios(config)
+    .then(function (response) {
+      // console.log(JSON.stringify(response.data));
+      res.send(response)
+    })
+    .catch(function (error) {
+      // console.log(error);
+      res.send(error)
+    });
 
 
+});
+
+
+
+
+app.get('/upload', async (req, res) => {
+  const location = 'projects/senior-design-293721/locations/us-central1';
+
+
+  try {
+
+    const client = new CloudFunctionsServiceClient();
+    let myFunction = {
+      "name": "projects/senior-design-293721/locations/us-central1/functions/firstDeployed",
+      "sourceUploadUrl": "https://storage.googleapis.com/gcf-upload-us-central1-06164526-5e4b-41ba-98e5-7c2d9a3e7260/4320182d-ea72-4c4a-bfb3-06ecd70ba4b5.zip?GoogleAccessId=service-824226399055@gcf-admin-robot.iam.gserviceaccount.com&Expires=1606527088&Signature=SO%2BSMHRh1iIzyhqQdP4ZA5X4jK5GzAwAVP5ZU%2BaIN1C20Fj3DpwXWY%2BsvVxgQe1m3JlhKu0egfC2mhueUL1j%2BkobjqLRdikg7A6daU0f0tJEUiP6wSZPbmm6zv2Rv9mJXC4inwbR3WwomUHbo%2ByXNJ9F7mHzFDSetJ9rJ5pvkCRbzkPJ%2FLDMgipMz7m7JxDxkQCb8l2l1bkef6zEsoS3DPgTrxKhwuW614ztDzuwenpXeTI295Yo9KusZMvj8juEBfyXszMe3SVFfGRVEOcC8SyQcpkBOtLoU01a1s2oOu5Jr1S%2BpamClKwmIWkfa1NdFVAAGG%2BloP4mhoRP85Ae3g%3D%3D",
+      "description": "test",
+      "maxInstances": 1000,
+      "timeout": "300s",
+      "entryPoint": "",
+      "httpsTrigger": {},
+      "labels": {},
+      "network": "",
+      "runtime": "nodejs10",
+      "serviceAccountEmail": "",
+      "vpcConnector": ""
+    }
+
+
+
+    let request = {
+      location: location,
+      function: myFunction
+
+    }
+    const [operation] = await client.createFunction(request);
+    const [response] = await operation.promise();
+
+    res.send('Sucessfully Uploaded', response);
+
+
+  } catch (error) {
+    console.log('error: ', error)
+    res.send(error);
+
+  }
 
 });
 
