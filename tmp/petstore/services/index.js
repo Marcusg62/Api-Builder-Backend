@@ -1,9 +1,7 @@
+const DefaultService = require('./DefaultService');
 const PetService = require('./PetService');
-const StoreService = require('./StoreService');
-const UserService = require('./UserService');
 
 module.exports = {
+  DefaultService,
   PetService,
-  StoreService,
-  UserService,
 };

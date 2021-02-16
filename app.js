@@ -4,9 +4,9 @@ const express = require('express')
 const app = express()
 const port = 4000;
 var AdmZip = require('adm-zip');
-const { CloudFunctionsServiceClient } = require('@google-cloud/functions');
 const db = require('./config');
 const { generateFunctionalities } = require('./features/firebase-crud')
+const fs = require('fs');
 
 // end routes
 app.listen(port, () => {
@@ -264,29 +264,31 @@ module.exports = {
 
   s = s.replace(/const addPet (.*\s)*?\)\;/, 'hello')
 
- 
+
   res.send(s)
 
 });
 
 app.get('/generate', async (req, res) => {
-
-  let api = (await db.doc('api/simplePetStore').get()).data()
-
-  var fs = require('fs');
-  const yaml = require('js-yaml');
-
-  let data = yaml.load(api.swaggerDoc, { json: true })
-
-  fs.writeFile("petStoreApi.yaml", yaml.dump(data), function (err) {
-    if (err) {
-      console.log(err);
-    }
-  });
-
   let errorStep = '0'
 
   try {
+
+
+    let api = (await db.doc('api/simplePetStore2').get()).data().swaggerDoc
+
+    // make sure it's easy to read in doc
+    api = JSON.stringify(JSON.parse(api), null, 4);
+    fs.writeFileSync('petStoreApi.json', api);
+    console.log('wrote file')
+
+  } catch (error) {
+    console.log('error: ', error)
+    res.send(error)
+  }
+
+  try {
+    console.log('generating...')
     //   console.log('step', errorStep)
     await exec('java -jar openapi-generator-cli.jar generate \
     -i petStoreApi.json \
@@ -298,11 +300,11 @@ app.get('/generate', async (req, res) => {
       //     errorStep = '1'
       //     console.log('step', errorStep)
 
-
+      console.log('errur?', stderr)
 
       // START CODE GEN
 
-
+      console.log('generated...')
 
       const myPackages = `
     
@@ -413,145 +415,6 @@ app.get('/', (req, res) => {
 
 });
 
-
-app.get('/list', async (req, res) => {
-
-
-  try {
-    // Imports the Google Cloud client library
-
-    // remove this line after package is released
-    // eslint-disable-next-line node/no-missing-require
-    const { CloudFunctionsServiceClient } = require('@google-cloud/functions');
-
-    // TODO(developer): replace with your prefered project ID.
-    const projectId = 'senior-design-293721'
-
-    // Creates a client
-    const client = new CloudFunctionsServiceClient();
-    const project = 'projects/senior-design-293721/locations/us-central1'; // Get the functions for a project.
-    const page_size = 100; //Max number of functions to return per call
-    const page_token = 'token';
-    // const project = 'senior-design-293721/*/locations/*'; // Get the functions for a project.
-
-
-    const [functions] = await client.listFunctions({
-      parent: project,
-      pageSize: page_size,
-      pageToken: page_token,
-    });
-    console.info('functions: ', functions);
-
-    // create cloud function
-
-    // client.createFunction({
-    //   name: 'newFunction',
-    //   so
-
-    // })
-
-    // export GOOGLE_APPLICATION_CREDENTIALS="/Users/marcusgallegos/Documents/School/Senior Design/apigen-4d56d-firebase-adminsdk-ras28-3399415085.json"   
-
-    res.send('Sucessfully Listed Functions, check your console!');
-
-
-  } catch (error) {
-    console.log('error: ', error)
-    res.send(error);
-
-  }
-
-});
-
-app.get('/generateUploadUrl', async (req, res) => {
-  const { CloudFunctionsServiceClient } = require('@google-cloud/functions');
-
-  const client = new CloudFunctionsServiceClient();
-
-  let request = {
-    parent: 'projects/senior-design-293721/locations/us-central1'
-  }
-
-  const [response] = await client.generateUploadUrl(request);
-
-  console.log('response', response.uploadUrl)
-  // res.send(response)
-
-  var axios = require('axios');
-  var FormData = require('form-data');
-  var fs = require('fs');
-  var data = new FormData();
-  data.append('File', fs.createReadStream('/Users/marcusgallegos/Downloads/function-source (1).zip'));
-
-  var config = {
-    method: 'put',
-    url: response.uploadUrl,
-    headers: {
-      ...data.getHeaders(),
-      'content-type': 'application/zip',
-      'x-goog-content-length-range': '0,104857600',
-    },
-    data: data
-  };
-
-  axios(config)
-    .then(function (response) {
-      // console.log(JSON.stringify(response.data));
-      res.send(response)
-    })
-    .catch(function (error) {
-      // console.log(error);
-      res.send(error)
-    });
-
-
-});
-
-
-
-
-app.get('/upload', async (req, res) => {
-  const location = 'projects/senior-design-293721/locations/us-central1';
-
-
-  try {
-
-    const client = new CloudFunctionsServiceClient();
-    let myFunction = {
-      "name": "projects/senior-design-293721/locations/us-central1/functions/helloWord",
-      "sourceUploadUrl": "https://storage.googleapis.com/gcf-upload-us-central1-06164526-5e4b-41ba-98e5-7c2d9a3e7260/4320182d-ea72-4c4a-bfb3-06ecd70ba4b5.zip?GoogleAccessId=service-824226399055@gcf-admin-robot.iam.gserviceaccount.com&Expires=1606527088&Signature=SO%2BSMHRh1iIzyhqQdP4ZA5X4jK5GzAwAVP5ZU%2BaIN1C20Fj3DpwXWY%2BsvVxgQe1m3JlhKu0egfC2mhueUL1j%2BkobjqLRdikg7A6daU0f0tJEUiP6wSZPbmm6zv2Rv9mJXC4inwbR3WwomUHbo%2ByXNJ9F7mHzFDSetJ9rJ5pvkCRbzkPJ%2FLDMgipMz7m7JxDxkQCb8l2l1bkef6zEsoS3DPgTrxKhwuW614ztDzuwenpXeTI295Yo9KusZMvj8juEBfyXszMe3SVFfGRVEOcC8SyQcpkBOtLoU01a1s2oOu5Jr1S%2BpamClKwmIWkfa1NdFVAAGG%2BloP4mhoRP85Ae3g%3D%3D",
-      "description": "test",
-      "maxInstances": 1000,
-      // "timeout": "300s",
-      "entryPoint": "",
-      "httpsTrigger": {},
-      "labels": {},
-      "network": "",
-      "runtime": "nodejs10",
-      "serviceAccountEmail": "",
-      "vpcConnector": ""
-    }
-
-
-
-    let request = {
-      location: location,
-      function: myFunction
-
-    }
-    const [operation] = await client.createFunction(request);
-    const [response] = await operation.promise();
-
-    res.send('Sucessfully Uploaded', response);
-
-
-  } catch (error) {
-    console.log('error: ', error)
-    res.send(error);
-
-  }
-
-});
 
 module.exports = {
   app
