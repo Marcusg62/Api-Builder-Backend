@@ -5,6 +5,8 @@ const app = express()
 const port = 4000;
 var AdmZip = require('adm-zip');
 const { CloudFunctionsServiceClient } = require('@google-cloud/functions');
+const db = require('./config');
+const { generateFunctionalities } = require('./features/firebase-crud')
 
 // end routes
 app.listen(port, () => {
@@ -46,17 +48,248 @@ app.get('/testAuth', async (req, res) => {
 
 })
 
+app.get('/testing', async (req, res) => {
+
+  console.log('testing...')
+
+
+  const admin = require('firebase-admin');
+  var app = admin.initializeApp();
+
+  const db = admin.firestore()
+
+  db.doc('incrementTest/test').create({ number: 1 })
+
+  res.send('done')
+
+
+
+})
+
+
+app.get('/replace', async (req, res) => {
+
+
+  let s =
+    `
+  /* eslint-disable no-unused-vars */
+const Service = require('./Service');
+
+/**
+* Add a new pet to the store
+*
+* body Pet Pet object that needs to be added to the store
+* no response value expected for this operation
+* */
+const addPet = ({ body }) => new Promise(
+  async (resolve, reject) => {
+    try {
+      resolve(Service.successResponse({
+        body,
+      }));
+    } catch (e) {
+      reject(Service.rejectResponse(
+        e.message || 'Invalid input',
+        e.status || 405,
+      ));
+    }
+  },
+);
+/**
+* Deletes a pet
+*
+* petId Long Pet id to delete
+* apiUnderscorekey String  (optional)
+* no response value expected for this operation
+* */
+const deletePet = ({ petId, apiUnderscorekey }) => new Promise(
+  async (resolve, reject) => {
+    try {
+      resolve(Service.successResponse({
+        petId,
+        apiUnderscorekey,
+      }));
+    } catch (e) {
+      reject(Service.rejectResponse(
+        e.message || 'Invalid input',
+        e.status || 405,
+      ));
+    }
+  },
+);
+/**
+* Finds Pets by status
+* Multiple status values can be provided with comma separated strings
+*
+* status List Status values that need to be considered for filter
+* returns List
+* */
+const findPetsByStatus = ({ status }) => new Promise(
+  async (resolve, reject) => {
+    try {
+      resolve(Service.successResponse({
+        status,
+      }));
+    } catch (e) {
+      reject(Service.rejectResponse(
+        e.message || 'Invalid input',
+        e.status || 405,
+      ));
+    }
+  },
+);
+/**
+* Finds Pets by tags
+* Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing.
+*
+* tags List Tags to filter by
+* returns List
+* */
+const findPetsByTags = ({ tags }) => new Promise(
+  async (resolve, reject) => {
+    try {
+      resolve(Service.successResponse({
+        tags,
+      }));
+    } catch (e) {
+      reject(Service.rejectResponse(
+        e.message || 'Invalid input',
+        e.status || 405,
+      ));
+    }
+  },
+);
+/**
+* Find pet by ID
+* Returns a single pet
+*
+* petId Long ID of pet to return
+* returns Pet
+* */
+const getPetById = ({ petId }) => new Promise(
+  async (resolve, reject) => {
+    try {
+      resolve(Service.successResponse({
+        petId,
+      }));
+    } catch (e) {
+      reject(Service.rejectResponse(
+        e.message || 'Invalid input',
+        e.status || 405,
+      ));
+    }
+  },
+);
+/**
+* Update an existing pet
+*
+* body Pet Pet object that needs to be added to the store
+* no response value expected for this operation
+* */
+const updatePet = ({ body }) => new Promise(
+  async (resolve, reject) => {
+    try {
+      resolve(Service.successResponse({
+        body,
+      }));
+    } catch (e) {
+      reject(Service.rejectResponse(
+        e.message || 'Invalid input',
+        e.status || 405,
+      ));
+    }
+  },
+);
+/**
+* Updates a pet in the store with form data
+*
+* petId Long ID of pet that needs to be updated
+* name String Updated name of the pet (optional)
+* status String Updated status of the pet (optional)
+* no response value expected for this operation
+* */
+const updatePetWithForm = ({ petId, name, status }) => new Promise(
+  async (resolve, reject) => {
+    try {
+      resolve(Service.successResponse({
+        petId,
+        name,
+        status,
+      }));
+    } catch (e) {
+      reject(Service.rejectResponse(
+        e.message || 'Invalid input',
+        e.status || 405,
+      ));
+    }
+  },
+);
+/**
+* uploads an image
+*
+* petId Long ID of pet to update
+* additionalMetadata String Additional data to pass to server (optional)
+* file File file to upload (optional)
+* returns ApiResponse
+* */
+const uploadFile = ({ petId, additionalMetadata, file }) => new Promise(
+  async (resolve, reject) => {
+    try {
+      resolve(Service.successResponse({
+        petId,
+        additionalMetadata,
+        file,
+      }));
+    } catch (e) {
+      reject(Service.rejectResponse(
+        e.message || 'Invalid input',
+        e.status || 405,
+      ));
+    }
+  },
+);
+
+module.exports = {
+  addPet,
+  deletePet,
+  findPetsByStatus,
+  findPetsByTags,
+  getPetById,
+  updatePet,
+  updatePetWithForm,
+  uploadFile,
+};
+
+  `
+
+  s = s.replace(/const addPet (.*\s)*?\)\;/, 'hello')
+
+ 
+  res.send(s)
+
+});
+
 app.get('/generate', async (req, res) => {
 
-  // res.setHeader('Content-Type', 'application/json; application/octet-stream')
-  // res.setHeader('Content-Disposition', 'attachment;filename=generate.zip')
+  let api = (await db.doc('api/simplePetStore').get()).data()
+
+  var fs = require('fs');
+  const yaml = require('js-yaml');
+
+  let data = yaml.load(api.swaggerDoc, { json: true })
+
+  fs.writeFile("petStoreApi.yaml", yaml.dump(data), function (err) {
+    if (err) {
+      console.log(err);
+    }
+  });
 
   let errorStep = '0'
 
   try {
     //   console.log('step', errorStep)
     await exec('java -jar openapi-generator-cli.jar generate \
-    -i petstore.yaml \
+    -i petStoreApi.json \
     -g nodejs-express-server \
     -o tmp/petstore', (error, stdout, stderr) => {
       // console.log(`stdout: ${stdout}`);
@@ -67,39 +300,7 @@ app.get('/generate', async (req, res) => {
 
 
 
-      // code gen part
-
-      const newCode = `
-
-    const listPets = ({ limit }) => new Promise( async (resolve, reject) => { try { 
-    // start changes
-    var admin = require('firebase-admin');
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-      databaseURL: "https://api-builder-71719.firebaseio.com",
-    });
-    const db = admin.firestore();
-    let pets = await db.collection('pets').get()
-    let petArray = []
-    pets.forEach(pet => {
-      petArray.push(pet.data())
-
-    })
-    return resolve(petArray)
-    // end changes 
-    resolve(Service.successResponse({
-      limit,
-    }));
-  } catch (e) {
-    reject(Service.rejectResponse(
-      e.message || 'Invalid input',
-      e.status || 405,
-    ));
-  }
-},
-);
-
-    `
+      // START CODE GEN
 
 
 
@@ -152,53 +353,42 @@ app.get('/generate', async (req, res) => {
     
     
     `
-      const minifier = require('string-minify');
 
-      var fs = require('fs')
-
-      let data = fs.readFileSync('tmp/petstore/services/PetsService.js', 'utf-8');
-      let start = 537;
-      let substitute = '  HELLO   '
-      let end = 829
-      let result = data.substring(0, start) + newCode + data.substring(end);
-
-      fs.writeFileSync('tmp/petstore/services/PetsService.js', result, 'utf-8');
-
+      generateFunctionalities()
       fs.writeFileSync('tmp/petstore/package.json', myPackages, 'utf-8');
 
+      // END CODE GEN
 
 
 
 
 
+      // creating archives
+      var zip = new AdmZip();
+      zip.addLocalFolder('tmp/petstore');
+      // or write everything to disk
+      errorStep = '2'
+      console.log('step', errorStep)
 
+      zip.writeZip("tmp/output.zip");
+      errorStep = '3'
+      console.log('step', errorStep)
 
-      // // creating archives
-      // var zip = new AdmZip();
-      // zip.addLocalFolder('tmp/petstore');
-      // // or write everything to disk
-      // errorStep = '2'
-      // console.log('step', errorStep)
+      let zipFileContents = zip.toBuffer();
+      const fileName = 'generate.zip';
+      const fileType = 'application/zip';
+      res.writeHead(200, {
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Content-Type': fileType,
+      })
 
-      // zip.writeZip("tmp/output.zip");
-      // errorStep = '3'
-      // console.log('step', errorStep)
+      errorStep = '4'
+      console.log('step', errorStep)
+      if (error) {
+        res.send(error)
 
-      // let zipFileContents = zip.toBuffer();
-      // const fileName = 'generate.zip';
-      // const fileType = 'application/zip';
-      // res.writeHead(200, {
-      //   'Content-Disposition': `attachment; filename="${fileName}"`,
-      //   'Content-Type': fileType,
-      // })
-
-      // errorStep = '4'
-      // console.log('step', errorStep)
-      // if (error) {
-      //   res.send(error)
-
-      // }
-      return res.end('zipFileContents');
+      }
+      return res.end(zipFileContents);
     })
 
 
@@ -260,7 +450,7 @@ app.get('/list', async (req, res) => {
 
     // })
 
-    // export GOOGLE_APPLICATION_CREDENTIALS="/Users/marcusgallegos/Senior Design-18c4109462fd.json"   
+    // export GOOGLE_APPLICATION_CREDENTIALS="/Users/marcusgallegos/Documents/School/Senior Design/apigen-4d56d-firebase-adminsdk-ras28-3399415085.json"   
 
     res.send('Sucessfully Listed Functions, check your console!');
 
@@ -332,7 +522,7 @@ app.get('/upload', async (req, res) => {
       "sourceUploadUrl": "https://storage.googleapis.com/gcf-upload-us-central1-06164526-5e4b-41ba-98e5-7c2d9a3e7260/4320182d-ea72-4c4a-bfb3-06ecd70ba4b5.zip?GoogleAccessId=service-824226399055@gcf-admin-robot.iam.gserviceaccount.com&Expires=1606527088&Signature=SO%2BSMHRh1iIzyhqQdP4ZA5X4jK5GzAwAVP5ZU%2BaIN1C20Fj3DpwXWY%2BsvVxgQe1m3JlhKu0egfC2mhueUL1j%2BkobjqLRdikg7A6daU0f0tJEUiP6wSZPbmm6zv2Rv9mJXC4inwbR3WwomUHbo%2ByXNJ9F7mHzFDSetJ9rJ5pvkCRbzkPJ%2FLDMgipMz7m7JxDxkQCb8l2l1bkef6zEsoS3DPgTrxKhwuW614ztDzuwenpXeTI295Yo9KusZMvj8juEBfyXszMe3SVFfGRVEOcC8SyQcpkBOtLoU01a1s2oOu5Jr1S%2BpamClKwmIWkfa1NdFVAAGG%2BloP4mhoRP85Ae3g%3D%3D",
       "description": "test",
       "maxInstances": 1000,
-      "timeout": "300s",
+      // "timeout": "300s",
       "entryPoint": "",
       "httpsTrigger": {},
       "labels": {},
@@ -366,3 +556,6 @@ app.get('/upload', async (req, res) => {
 module.exports = {
   app
 };
+
+
+// /Users/marcusgallegos/api-builder-71719-7bf68aea3f5b.json

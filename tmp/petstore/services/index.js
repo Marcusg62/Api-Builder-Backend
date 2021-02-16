@@ -1,5 +1,9 @@
-const PetsService = require('./PetsService');
+const PetService = require('./PetService');
+const StoreService = require('./StoreService');
+const UserService = require('./UserService');
 
 module.exports = {
-  PetsService,
+  PetService,
+  StoreService,
+  UserService,
 };

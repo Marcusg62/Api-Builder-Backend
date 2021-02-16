@@ -1,0 +1,1 @@
+var regex = /const addPet(.*\s)*?^\)/m;
