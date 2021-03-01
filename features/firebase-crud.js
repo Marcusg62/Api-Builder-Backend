@@ -10,11 +10,7 @@ const code_gen_start = `
     async (resolve, reject) => {
       try {
   
-        let result = []
-        let data = await (db.collection("pets").where("name", "==", "Fido").get())
-        data.forEach(doc => {
-          result.push(doc.data())
-        })
+
 
 
     `;
@@ -54,8 +50,9 @@ module.exports.generateFunctionalities = async function () {
     switch (key) {
       case 'firestore-document-get':
         // static or dynamic path
-
-
+        new_code_gen = `
+        let result = (await db.doc('xyz').get()).data()
+        `
         break;
       case 'firestore-document-delete':
         // static or dynamic path
@@ -67,6 +64,13 @@ module.exports.generateFunctionalities = async function () {
       case 'firestore-collection-get':
         // static or dynamic path
         // static or dynamic query string
+
+        new_code_gen = `
+        let result = []
+        let data = await (db.collection("pets").where("name", "==", "Fido").get())
+        data.forEach(doc => {
+          result.push(doc.data())
+        })`
         break;
       default:
         break;
@@ -74,12 +78,12 @@ module.exports.generateFunctionalities = async function () {
 
     // replace code
 
-    // let fnName = 'addPet'
-    // const options = {
-    //   files: 'tmp/petstore/services/PetService.js',
-    //   from: /const getPet (.*\s)*?\)\;/,
-    //   to: newCode,
-    // };
+    let fnName = key
+    const options = {
+      files: 'tmp/petstore/services/PetService.js',
+      from: new RegExp(`const ${key} (.*\s)*?\)\;`),
+      to: new_code_gen,
+    };
 
 
   }
