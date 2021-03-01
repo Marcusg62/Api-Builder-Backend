@@ -1,5 +1,6 @@
 const db = require('../config')
 const replace = require('replace-in-file');
+const { json } = require('express');
 
 
 // template vars
@@ -39,6 +40,12 @@ module.exports.generateFunctionalities = async function () {
 
   console.log('generating functionalities...')
 
+  let paths = JSON.parse(api.swaggerDoc)
+58  f
+  let route = 
+
+  // get method -> know what query/body params we have
+
   // for each key of functionalities
   for (const [key, value] of Object.entries(functionalities)) {
     console.log(`${key}: ${value}`);
@@ -56,10 +63,20 @@ module.exports.generateFunctionalities = async function () {
         break;
       case 'firestore-document-delete':
         // static or dynamic path
+        new_code_gen = `
+        return await db.doc('a path').delete()
+
+        `
+        // returns WriteResult
 
         break;
       case 'firestore-document-update':
         // static or dynamic path
+        new_code_gen = `
+        return await db.doc('a path').update(some data)
+        `
+        // returns WriteResult
+
         break;
       case 'firestore-collection-get':
         // static or dynamic path
@@ -70,7 +87,9 @@ module.exports.generateFunctionalities = async function () {
         let data = await (db.collection("pets").where("name", "==", "Fido").get())
         data.forEach(doc => {
           result.push(doc.data())
-        })`
+        })
+        return result;
+        `
         break;
       default:
         break;
