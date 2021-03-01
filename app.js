@@ -5,7 +5,6 @@ const express = require('express')
 const app = express()
 const port = 4000;
 var AdmZip = require('adm-zip');
-const { CloudFunctionsServiceClient } = require('@google-cloud/functions');
 const db = require('./config');
 const { generateFunctionalities } = require('./features/firebase-crud')
 const fs = require('fs');
