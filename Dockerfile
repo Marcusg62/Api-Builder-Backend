@@ -1,11 +1,12 @@
-from node
+FROM openjdk:15-alpine
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive \
-    apt-get -y install default-jre-headless && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --update nodejs nodejs-npm
+
+RUN npm install -g grunt grunt-cli
+
+COPY package*.json ./
+RUN npm install
+COPY . ./
 
 EXPOSE 8080
-
-CMD ["npm", "start"] 
+CMD ["npm", "start"]

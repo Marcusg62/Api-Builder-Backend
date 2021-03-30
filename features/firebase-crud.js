@@ -32,10 +32,10 @@ const code_gen_end = `
       `;
 
 
-module.exports.generateFunctionalities = async function () {
+const generateFunctionalities = async function (apiId) {
   // get functionalities
 
-  let api = (await db.doc('api/simplePetStore2').get()).data()
+  let api = (await db.doc('api/' + apiId).get()).data()
   let functionalities = api.functionalities
 
   console.log('generating functionalities...')
@@ -45,51 +45,41 @@ module.exports.generateFunctionalities = async function () {
   // get method -> know what query/body params we have
 
   // for each key of functionalities
+  if (!functionalities) {
+    return
+  }
+
   for (const [key, value] of Object.entries(functionalities)) {
 
     let apiRouteMeta;
-
-    for (const [o_key, o_value] of Object.entries(paths)) {
-      // /pet, /store
-      for (const [m_key, m_value] of Object.entries(o_value)) {
-        // get, put, delete
-
-        if (m_value.operationId == key) {
-          apiRouteMeta = m_value
-        }
-
-      }
+    let operationId = key;
 
 
+    let new_code_gen = `
+    const ${operationId} = () => new Promise(
+      async (resolve, reject) => {
+        try {
+          // replace me
+          `;
+
+    let path = ''
+    if (value.path == 'dynamic') {
+      path = 'req.query.dynamicPath'
+    } else {
+      path = value.path
     }
-
-
-    let new_code_gen = ``;
-
-    // default to hardcoded path 
-    // if there is a dynamic path, it is concatenated to hardcarded path
-    //     dynamic path needs to be passed as a paramter named pathName
-    let path = value.path;
-    if (apiRouteMeta.parameters.filter(param => param.name === 'pathName').length > 0) {
-      // to do: how to make sure we have appropriate syntax? like.. x/y//z/a b/c ? appropriate slashes
-      path += apiRouteMeta.parameters.filter(param => param.name === 'pathName')[0]
-    }
-
-
-
-
-
     // switch case
-    switch (key) {
+    switch (value.type) {
       case 'firestore-document-get':
-        // static or dynamic path
-        new_code_gen = `
-        let result = (await db.doc('${path}').get()).data()
+        // static or dynamic path'
+
+        new_code_gen += `
+        return (await db.doc('${path}').get()).data()
         `
         break;
       case 'firestore-document-delete':
         // static or dynamic path
-        new_code_gen = `
+        new_code_gen += `
         return await db.doc('${path}').delete()
 
         `
@@ -98,8 +88,8 @@ module.exports.generateFunctionalities = async function () {
         break;
       case 'firestore-document-update':
         // static or dynamic path
-        new_code_gen = `
-        return await db.doc('${path}').update({... firestore-update-data)
+        new_code_gen += `
+        return await db.doc('${path}').update({... firestore-update-data})
         `
         // returns WriteResult
 
@@ -107,17 +97,23 @@ module.exports.generateFunctionalities = async function () {
       case 'firestore-collection-get':
         // static or dynamic path
         // static or dynamic query string
+        new_code_gen += `
+        let result = []; 
+        (await db.collection('pets').get()).forEach(doc => {
+          results.push(doc.data())
+        })
+
+        return result;
+        `
 
 
-        // default to query string
-        // if there is a dynamic query string, it replaces hardcoded query string
-        let query = value.query;
-        if (apiRouteMeta.parameters.filter(param => param.name === 'firestore-collection-query').length > 0) {
-          // to do: how to make sure we have appropriate syntax? like.. x/y//z/a b/c ? appropriate slashes
-          query = 'firestore-collection-query'
-        }
+        break;
 
-        new_code_gen = `
+      case 'firestore-collection-query':
+
+        query = `'name', '==', 'Fido'`
+
+        new_code_gen += `
         let result = []
         let data = await (db.collection('${path}').where(${query}).get())
         data.forEach(doc => {
@@ -125,33 +121,42 @@ module.exports.generateFunctionalities = async function () {
         })
         return result;
         `
+
         break;
       default:
         break;
     }
 
+
+    new_code_gen += `
+      } catch (e) {
+        reject(Service.rejectResponse(
+          e.message || 'Invalid input',
+          e.status || 405,
+        ));
+      }
+    },
+    );
+    `
+
     // replace code
+    try {
+      let regex = new RegExp(`const ${key} (.*\\s)*?\\)\\;`)
+      console.log('regex', regex)
+      let fnName = key
+      const options = {
+        files: `tmp/gen/services/DefaultService.js`,
+        from: regex,
+        to: new_code_gen,
+      };
+      const results = await replace.sync(options);
+    } catch (error) {
+      console.error('Regex error...: ', error)
+    }
 
-    let fnName = key
-    const options = {
-      files: 'tmp/petstore/services/PetService.js',
-      from: new RegExp(`const ${key} (.*\s)*?\)\;`),
-      to: new_code_gen,
-    };
-
-
-  }
-
-
-
-
-
-  // const results = replace.sync(options);
-
-
-
-
-
-
+  } // end for 
 
 }
+
+
+module.exports.generateFunctionalities = generateFunctionalities;
