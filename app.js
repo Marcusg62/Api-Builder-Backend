@@ -5,6 +5,7 @@ const express = require('express')
 const app = express()
 const port = 8080;
 var AdmZip = require('adm-zip');
+const archiver = require('archiver')
 const db = require('./config');
 const fs = require('fs');
 // end routes
@@ -117,22 +118,36 @@ app.get('/generate/:apiId', async (req, res) => {
       zip.addLocalFolder('tmp/gen');
       // or write everything to disk
 
-      zip.writeZip("tmp/output.zip");
+      zip.writeZip("tmp/output.zip", (e) => {
+        if (e) {
+          console.error('ADMZIP error', e)
 
-      let zipFileContents = zip.toBuffer();
-      const fileName = 'generate.zip';
-      const fileType = 'application/zip';
+        }
+      });
+
+      // let zipFileContents = zip.toBuffer();
+      // const fileName = 'generate.zip';
+      // const fileType = 'application/zip';
+      // // res.writeHead(200, {
+      // //   'Content-Disposition': `attachment; filename="${fileName}"`,
+      // //   'Content-Type': fileType,
+      // // })
+      // res.set({
+      //   'Content-Type': 'application/zip',
+      //   'Content-Disposition': `attachment; filename="${fileName}"`
+      // })
+      // return res.sendFile(__dirname + '/tmp/output.zip');
+
+      var stat = fs.statSync(__dirname + '/tmp/output.zip');
+
       res.writeHead(200, {
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-        'Content-Type': fileType,
-      })
+        'Content-Type': 'application/zip',
+        'Content-Length': stat.size
+      });
 
-      if (error) {
-        res.send(error)
-
-      }
-      return res.end(zipFileContents);
-
+      var readStream = fs.createReadStream(__dirname + '/tmp/output.zip');
+      // We replaced all the event handlers with a simple call to readStream.pipe()
+      readStream.pipe(res);
 
 
     })

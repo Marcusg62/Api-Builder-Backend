@@ -66,7 +66,7 @@ const generateFunctionalities = async function (apiId) {
     if (value.path == 'dynamic') {
       path = 'req.query.dynamicPath'
     } else {
-      path = value.path
+      path =  `'${value.path}'`
     }
     // switch case
     switch (value.type) {
@@ -74,13 +74,13 @@ const generateFunctionalities = async function (apiId) {
         // static or dynamic path'
 
         new_code_gen += `
-        return (await db.doc('${path}').get()).data()
+        return (await db.doc(${path}).get()).data()
         `
         break;
       case 'firestore-document-delete':
         // static or dynamic path
         new_code_gen += `
-        return await db.doc('${path}').delete()
+        return await db.doc(${path}).delete()
 
         `
         // returns WriteResult
@@ -89,7 +89,7 @@ const generateFunctionalities = async function (apiId) {
       case 'firestore-document-update':
         // static or dynamic path
         new_code_gen += `
-        return await db.doc('${path}').update({... firestore-update-data})
+        return await db.doc(${path}).update({... firestore-update-data})
         `
         // returns WriteResult
 

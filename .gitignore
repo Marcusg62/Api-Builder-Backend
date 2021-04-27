@@ -1,5 +1,5 @@
 output
 node_modules
 tmp
-node_modules
+node_modules/*
 apigen-4d56d-firebase-adminsdk-ras28-d5e0d08180.json
